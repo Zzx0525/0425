@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的宇宙作品集</title>
+  <!-- 載入 p5.js 函式庫 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #050510;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    #app-container {
+      display: flex;
+      width: 200vw; /* 兩倍視窗寬度，用來達成橫向排列 */
+      height: 100vh;
+      transition: transform 0.8s ease-in-out; /* 平滑的橫向滑動動畫 */
+    }
+    /* 展開作品時的狀態：向左滑動 */
+    #app-container.show-project {
+      transform: translateX(-100vw);
+    }
+    #canvas-container {
+      width: 100vw; /* 宇宙填滿整個視窗寬度 */
+      height: 100vh;
+      flex-shrink: 0;
+      transition: transform 0.8s ease-in-out, opacity 0.8s ease-in-out;
+    }
+    /* 展開作品時的狀態：宇宙縮小並稍微變暗，產生 3D 空間感 */
+    #app-container.show-project #canvas-container {
+      transform: scale(0.8);
+      opacity: 0.5;
+    }
+    #iframe-container {
+      width: 100vw; /* 作品填滿另一個視窗寬度 */
+      height: 100vh;
+      flex-shrink: 0;
+      position: relative;
+      background-color: #151020; /* 配合宇宙背景的深紫色 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 20px;
+      letter-spacing: 2px;
+    }
+    /* 載入提示文字 (放在 iframe 背後) */
+    #iframe-container::before {
+      content: '💫 準備進入作品...';
+      position: absolute;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background-color: white; /* iframe 預設白底，避免透明作品難以閱讀 */
+      z-index: 1; /* 確保 iframe 蓋在文字上面 */
+      opacity: 0; /* 一開始先透明，載入後再顯示 */
+      transition: opacity 0.5s ease-in-out; /* 淡入淡出的轉場動畫 */
+    }
+    #back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: 1px solid white;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 16px;
+      z-index: 10;
+      transition: background-color 0.3s;
+    }
+    #back-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* --- 新增：開場發射動畫的樣式 --- */
+    #intro-container {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 100; /* 確保蓋在宇宙畫布上方 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 1s ease-in-out;
+      overflow: hidden;
+    }
+    .sky-bg {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      /* 漸層從黑(宇宙)過渡到藍(天空) */
+      background: linear-gradient(to bottom, #050510 0%, #151020 20%, #2a5298 50%, #87CEEB 100%);
+      background-size: 100% 400%;
+      background-position: bottom;
+      z-index: 0; /* 改為 0，把空間讓給地球 */
+    }
+    /* --- 新增：地球的樣式 --- */
+    .earth {
+      position: absolute;
+      width: 150vw;
+      height: 150vw;
+      left: -25vw;
+      top: 100vh; /* 一開始藏在視窗最下方 */
+      background: radial-gradient(circle at 50% 5%, #4b9cd3 0%, #133955 60%); /* 改為純海洋基底 */
+      border-radius: 50%;
+      z-index: 1; /* 蓋在天空之上，雲朵之下 */
+      box-shadow: 0 0 50px rgba(75, 156, 211, 0.6);
+      overflow: hidden; /* 將溢出的陸地與雲朵裁切在圓弧邊緣內 */
+    }
+    /* 新增：利用偽元素繪製地球表面的不規則陸地與雲層 */
+    .earth::before {
+      content: '';
+      position: absolute;
+      top: -2%; left: -2%; width: 104%; height: 104%;
+      background: 
+        /* 白色的雲層 */
+        radial-gradient(ellipse at 30% 8%, rgba(255, 255, 255, 0.9) 0%, transparent 8%),
+        radial-gradient(ellipse at 70% 12%, rgba(255, 255, 255, 0.7) 0%, transparent 12%),
+        radial-gradient(ellipse at 45% 6%, rgba(255, 255, 255, 0.8) 0%, transparent 10%),
+        radial-gradient(ellipse at 85% 9%, rgba(255, 255, 255, 0.6) 0%, transparent 15%),
+        radial-gradient(ellipse at 15% 15%, rgba(255, 255, 255, 0.7) 0%, transparent 12%),
+        /* 綠色的陸地 */
+        radial-gradient(ellipse at 25% 10%, #2E8B57 0%, transparent 14%),
+        radial-gradient(ellipse at 75% 8%, #228B22 0%, transparent 18%),
+        radial-gradient(ellipse at 50% 14%, #4E9A06 0%, transparent 15%);
+      filter: blur(6px); /* 增加模糊讓漸層邊緣融合成不規則的自然形狀 */
+      z-index: 1;
+    }
+    /* 新增：地球的立體陰影與大氣層反光 */
+    .earth::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      border-radius: 50%;
+      box-shadow: inset 0 20px 40px rgba(255, 255, 255, 0.6), inset 0 -100px 150px rgba(0, 0, 0, 0.9);
+      z-index: 2;
+    }
+    .clouds-container {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 2;
+    }
+    .cloud {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 50px;
+      filter: blur(3px); /* 模擬動態模糊 */
+      top: -200px;
+    }
+    .c1 { width: 150px; height: 60px; left: 20%; }
+    .c2 { width: 100px; height: 40px; left: 70%; }
+    .c3 { width: 200px; height: 80px; left: 40%; }
+    .c4 { width: 120px; height: 50px; left: 80%; }
+    .c5 { width: 180px; height: 70px; left: 10%; }
+
+    .rocket-wall {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      /* 把窗戶加大，透明範圍從 30vmin 擴大到 42vmin */
+      background: radial-gradient(circle at center, transparent 42vmin, #777 43vmin, #333 48vmin, #111 100%);
+      z-index: 3;
+    }
+    #launch-btn {
+      z-index: 4;
+      padding: 15px 50px;
+      font-size: 32px;
+      font-weight: bold;
+      background-color: #ff4757;
+      color: white;
+      border: 4px solid #fff;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(255, 71, 87, 0.6);
+      transition: all 0.3s;
+      letter-spacing: 5px;
+    }
+    #launch-btn:hover {
+      transform: scale(1.1);
+      background-color: #ff6b81;
+    }
+
+    /* --- 新增：目標文字的樣式 --- */
+    #mission-target {
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      text-shadow: 0 4px 10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(100, 200, 255, 0.8); /* 科幻感的發光陰影 */
+      text-align: center;
+      width: 90vw;
+      transition: opacity 0.5s;
+      pointer-events: none; /* 確保不會阻擋到滑鼠點擊 */
+    }
+
+    /* --- 新增：略過動畫按鈕的樣式 --- */
+    #skip-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 8px 15px;
+      background-color: rgba(0, 0, 0, 0.4);
+      color: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 10;
+      transition: all 0.3s;
+    }
+    #skip-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    /* 觸發發射後的 CSS 動畫 */
+    .launching .sky-bg { animation: sky-rise 5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    .launching .earth { animation: earth-appear 4s cubic-bezier(0.4, 0, 0.2, 1) 1.5s forwards; } /* 延遲 1.5 秒後地球浮現 */
+    .launching .rocket-wall { animation: shake 0.1s infinite; }
+    .launching .cloud { animation: cloud-fall linear infinite; }
+    /* 設定每朵雲掉落的速度與延遲，模擬隨機感 */
+    .launching .c1 { animation-duration: 0.4s; animation-delay: 0.1s; }
+    .launching .c2 { animation-duration: 0.3s; animation-delay: 0.2s; }
+    .launching .c3 { animation-duration: 0.5s; animation-delay: 0.0s; }
+    .launching .c4 { animation-duration: 0.35s; animation-delay: 0.3s; }
+    .launching .c5 { animation-duration: 0.45s; animation-delay: 0.15s; }
+
+    @keyframes sky-rise { 0% { background-position: bottom; } 100% { background-position: top; } }
+    @keyframes cloud-fall { 0% { top: -200px; transform: scale(1); opacity: 1; } 100% { top: 120vh; transform: scale(2); opacity: 0.5; } }
+    @keyframes shake { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-4px, 4px); } 50% { transform: translate(4px, -4px); } 75% { transform: translate(-4px, -4px); } }
+    @keyframes earth-appear { 0% { top: 100vh; } 100% { top: 60vh; } } /* 地球從下方上升，露出巨大的圓弧邊緣 */
+  </style>
+</head>
+<body>
+  <!-- 新增：開場火箭發射動畫遮罩 -->
+  <div id="intro-container">
+    <div class="sky-bg"></div>
+    <div class="earth"></div> <!-- 加入地球元素 -->
+    <div class="clouds-container">
+      <div class="cloud c1"></div>
+      <div class="cloud c2"></div>
+      <div class="cloud c3"></div>
+      <div class="cloud c4"></div>
+      <div class="cloud c5"></div>
+    </div>
+    <div class="rocket-wall"></div>
+    <div id="mission-target">目標:程式設計課程學習歷程與作品</div>
+    <button id="launch-btn" onclick="startLaunch()">出發</button>
+    <button id="skip-btn" onclick="skipIntro()">略過動畫 ⏭</button>
+  </div>
+
+  <div id="app-container">
+    <div id="canvas-container"></div>
+    <div id="iframe-container">
+      <!-- 點擊後觸發 JS 裡的返回宇宙函式 -->
+      <button id="back-btn" onclick="goBackToUniverse()">← 返回宇宙</button>
+      <iframe id="project-iframe" src="about:blank" title="作品展示"></iframe>
+    </div>
+  </div>
+  
+  <script>
+    // 用來儲存計時器，以便在略過時清除它們
+    let launchTimeout1, launchTimeout2;
+
+    // --- 處理開場發射的邏輯 ---
+    function startLaunch() {
+      const btn = document.getElementById('launch-btn');
+      const intro = document.getElementById('intro-container');
+      const clouds = document.querySelector('.clouds-container');
+      const wall = document.querySelector('.rocket-wall');
+      const missionText = document.getElementById('mission-target');
+
+      btn.style.display = 'none'; // 隱藏按鈕
+      if (missionText) {
+        missionText.style.opacity = '0'; // 點擊出發後淡出目標文字，讓視線集中在窗外
+      }
+      
+      intro.classList.add('launching'); // 加上 class 觸發 CSS 視覺動畫
+
+      // 4.5 秒後已經進入太空，停止雲朵並將機艙震動變得微弱
+      launchTimeout1 = setTimeout(() => {
+        clouds.style.display = 'none';
+        wall.style.animation = 'shake 0.5s infinite'; 
+      }, 4500);
+
+      // 6.5 秒後淡出整個開場畫面，正式進入宇宙！
+      launchTimeout2 = setTimeout(() => {
+        intro.style.opacity = '0';
+        setTimeout(() => { intro.style.display = 'none'; }, 1000); // 等待淡出結束後完全移除
+      }, 6500);
+    }
+
+    // --- 處理略過動畫的邏輯 ---
+    function skipIntro() {
+      const intro = document.getElementById('intro-container');
+      intro.style.display = 'none'; // 直接隱藏開場畫面
+      // 清除原本設定好的動畫計時器，避免在背景繼續執行
+      if (launchTimeout1) clearTimeout(launchTimeout1);
+      if (launchTimeout2) clearTimeout(launchTimeout2);
+    }
+  </script>
+  <script src="sketch.js"></script>
+</body>
+</html>
