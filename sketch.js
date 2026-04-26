@@ -31,7 +31,7 @@ function setup() {
   planets.push(new Planet(0.3, 0.3, 80, color(255, 140, 105), "海草小魚灣", "https://zzx0525.github.io/0323/", 'fish')); // 珊瑚橘 (海草與魚)
   planets.push(new Planet(0.7, 0.5, 120, color(255, 220, 100), "閃電急急棒", "https://zzx0525.github.io/03330/", 'lightning')); // 閃電黃 (電流急急棒)
   planets.push(new Planet(0.4, 0.8, 70, color(180, 190, 200), "掃雷大師", "https://zzx0525.github.io/0331/", 'bomb')); // 銀灰色 (掃雷大師)
-  planets.push(new Planet(0.12, 0.85, 90, color(255, 235, 180), "作品筆記", "https://hackmd.io/folders/ihiN0dVm3c3tsb9oq1WAU?nav=overview", 'note')); // 靠近邊緣的筆記本星球
+  planets.push(new Planet(0.12, 0.85, 90, color(255, 235, 180), "作品筆記", "https://hackmd.io/@YATYlqJQTfOCDwPrLFCIaw/r1Gi7NYaWl", 'note')); // 靠近邊緣的筆記本星球
 
   // 初始化預留給未來作品的亮星 (X比例, Y比例, 大小)
   placeholderStars.push(new PlaceholderStar(0.15, 0.6, 12));
